@@ -1,196 +1,100 @@
-const envFile = require('node-env-file');
-const url = require('url');
+/* This is our configuration file. It's job is to setup variables and
+   other information for our program (usually based on the environment).
+   Since this is just another node.js file, we can use things like
+   logic, if statements, etc here.
+*/
 
-// using node-env-file to parse an .env file
-// Normally it's called .env not env.
-// env files are key=value one per line files. New lines indicate a new key=value pair.
-// an env file might look like this
-// env=development
-// sessionSecret=My Secret Key
-// dbURL="mongodb://localhost/ConfigExample"
-try {
-  envFile('./env'); // should pull env file from root node directory
-} catch (exception) {
-  // if env file does not exist, log the exception and maybe even shut down
-  // the process (no point if we aren't configured).
-  console.log(exception);
-}
+/* In the past we have used process.env to set things like our port 
+   and database connections on Heroku. Heroku configures process.env 
+   based on the Config Vars section of it's website. We often want to
+   use config vars like this to pull out our sensitive database
+   connection strings from our code. If someone were to get their hands
+   on our connection strings they could maliciously attack our database.
+   Therefore it is ideal to not have them stored as plain text in our code.
 
-// now that all of our env file variables have been put into process.env by name
-// we can call process.env.NODE_ENV and get the variable from our file
-const env = process.env.NODE_ENV || 'development';
+   This is where the dotenv library comes in. Heroku is already setup
+   to add to process.env when we run our node code there. We can use the
+   dotenv library to set this up locally as well. The dotenv library will
+   look for the .env file in our project, and load in the key-value pairs
+   stored there into process.env.
 
-// often you will see data broken up into environment settings so that you can
-// return config[env] or config["development"]; This will allow us to grab all
-// the variables from various settings by our env name such as production or
-// development. Object for our static asset config
+   The standard Node gitignore intentionally ignores the .env file so that
+   it is not tracked by git. Take a look at .gitignore now. The last line
+   ignores .env, meaning it won't get sent to GitHub. This is intentional,
+   as we will store our sensitive information in .env. It does mean that we
+   will need to remake it on any machine that we are working on. However,
+   it makes it far safer, especially if our code is public on GitHub.
+
+   You'll notice that there is no .env file in this project. That is because
+   it was ignored by git when this demo was made. Try creating a file called
+   .env in the root of this project (near the package.json) and add the
+   following content to it:
+
+        NODE_ENV=development
+        MONGODB_URI=mongodb://localhost/ConfigExample
+        REDISCLOUD_URL= (note: put your redis connection string here)
+        SECRET=My secret
+
+   These will all be loaded into process.env by the following function 
+   call to the dotenv library. More on what each does below.
+*/
+require('dotenv').config();
+
+/* Almost always when working on professional software, we make use of
+   "environments". The most common of which are development and
+   production. The idea is that "development" is the configuration used
+   when we are working on the project, and "production" is the config
+   we use when the program is actually running for clients to use.
+
+   Below, we have an object of objects that maps our environment name
+   to a static asset path. The reason these are objects is because we
+   could theoretically store more information in them later.
+*/
 const staticAssets = {
-  // asset path for devs
-  development: {
-    path: 'clientDev/',
-  },
-  // asset paths for testing
-  test: {
-    path: 'clientDev/',
-  },
-  // asset paths for staging
-  // Staging environments are a complete mirror of production so that when it
-  // goes into production, you know it has been tested on the exact
-  // settings/versions/software/hardware/configuration as the real one
-  staging: {
-    path: 'client/',
-  },
-  // asset paths for production
-  production: {
-    path: 'client/',
-  },
-
+    development: {
+      path: 'clientDev/',
+    },
+    production: {
+      path: 'client/',
+    },
 };
 
-// object for our http config
-// again everything is by a common environment key so we can just grab all of
-// the variables for our current environment
-const http = {
-  // http config vars for dev
-  development: {
-    port: 3000,
-    baseUrl: 'http://localhost:3000',
-  },
-  // http config vars for test
-  test: {
-    port: 3000,
-    baseUrl: 'http://localhost:3000',
-  },
-  // http config vars for staging
-  staging: {
-    port: process.env.PORT || process.env.NODE_PORT || 3000,
-    baseUrl: 'http://stagingAppName.herokuapp.com',
-  },
-  // http config vars for production
-  production: {
-    port: process.env.PORT || process.env.NODE_PORT || 3000,
-    baseUrl: 'http://appName.herokuapp.com',
-  },
+/* Similar to static assets above, we also want to have different
+   connection information for our different environments. Below we see
+   that each environment has http connection info, mongo connection
+   info, and redis connection info. You'll also notice that for some
+   of these we are pulling in information from our process.env variables
+   that were setup by our .env file and the dotenv library.
+
+   Again: it is important that we put sensitive information like these
+   connection strings into our .env file and our Config Vars on Heroku
+   so that they are not publically visible in our codebase on GitHub.
+*/
+const connections = {
+    development: {
+      http: {
+        port: 3000,
+      },
+      mongo: process.env.MONGODB_URI || 'mongodb://localhost/ConfigExample',
+      redis: process.env.REDISCLOUD_URL,
+    },
+  
+    production: {
+      http: {
+        port: process.env.PORT || process.env.NODE_PORT || 3000,
+      },
+      mongo: process.env.MONGODB_URI,
+      redis: process.env.REDISCLOUD_URL,
+    },
 };
 
-// object for our mongo or other db config
-// again everything is by a common environment key so we can just grab all of
-// the variables for our current environment
-const DB = {
-  // local database (use a different database for each so you don't pollute
-  // your environment with malformed data)
-  development: {
-    host: 'localhost',
-    database: 'dev_dbName',
-  },
-  // test database (use a different database for each so you don't pollute
-  // your environment with malformed data)
-  test: {
-    host: 'localhost',
-    database: 'test_dbName',
-  },
-  // staging database (use a different database for each so you don't pollute
-  // your environment with malformed data)
-  staging: {
-    host: undefined, // stored in MONGO_LAB process ENV variable for heroku
-    database: undefined,
-  },
-  // production database (use a different database for each so you don't pollute
-  // your environment with malformed data)
-  production: {
-    host: undefined, // stored in MONGO_LAB process ENV variable for heroku
-    database: undefined,
-  },
+
+/* Once we have setup the map objects above, we can simply export the ones
+   relevant to our specific dev environment. In the case of our secret, it
+   will always just be the one we are importing from our .env file.
+*/
+module.exports = {
+    staticAssets: staticAssets[process.env.NODE_ENV],
+    connections: connections[process.env.NODE_ENV],
+    secret: process.env.SECRET,
 };
-
-// default redis URL to work with
-let redisURL = {
-  hostname: 'localhost',
-  port: 6379,
-};
-// redis pass var
-let redisPASS;
-// if using Redis Cloud, then parse the URL for host, port and authentication
-if (process.env.REDISCLOUD_URL) {
-  redisURL = url.parse(process.env.REDISCLOUD_URL);
-  redisPASS = redisURL.auth.split(':')[1];
-}
-
-// object for redis
-// again everything is by a common environment key so we can just grab all of
-// the variables for our current environment
-const redis = {
-  // dev for redis (no pass locally unless you set on yourself)
-  development: {
-    host: 'localhost',
-    port: 6379,
-    pass: undefined,
-  },
-  // test for redis (no pass locally unless you set on yourself)
-  test: {
-    host: 'localhost',
-    port: 6379,
-    pass: undefined,
-  },
-  // staging for redis (using given pass from Heroku, another cloud or your own servers)
-  staging: {
-    host: redisURL.hostname,
-    port: redisURL.port,
-    pass: redisPASS || undefined,
-  },
-  // production for redis (using given pass from Heroku, another cloud or your own servers)
-  production: {
-    host: redisURL.hostname,
-    port: redisURL.port,
-    pass: redisPASS || undefined,
-  },
-};
-
-// object for express session
-// again everything is by a common environment key so we can just grab all of
-// the variables for our current environment
-const sessions = {
-    // development session key
-  development: {
-    secret: process.env.sessionSecret || 'Session Key',
-  },
-    // test session key
-  test: {
-    secret: process.env.sessionSecret || 'Session Key',
-  },
-    // staging session key
-  staging: {
-    secret: process.env.sessionSecret || 'e0c6821fddcb4b19bf38e8b9c8366d5a',
-  },
-    // production session key
-  production: {
-    secret: process.env.sessionSecret || 'e0c6821fddcb4b19bf38e8b9c8366d5a',
-  },
-};
-
-// function to help build a proper mongodb protocol string
-const dburl = () => {
-  const db = DB[env];
-  const auth = (db.username && db.password ? `${db.username}:${db.password}@` : '');
-  const port = (db.port ? `:${db.port}` : '');
-  return `mongodb://${auth}${db.host}${port}/${db.database}`;
-};
-
-// return an appropriate object of your environment
-// The keys are all indexed by the current environment, so outside of this file
-// all of the config calls only show the ones for the current environment
-const get = () =>
-   ({
-     env,
-     http: http[env],
-     dburl: dburl(env),
-     staticAssets: staticAssets[env],
-     redis: redis[env],
-     sessions: sessions[env],
-   })
-;
-
-// export the result of the function and other files can't get into the
-// internals of other environments
-// since we only export the result of the current environment.
-module.exports = get();
