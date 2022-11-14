@@ -11,9 +11,6 @@
 
    There is nothing new in router.js or controllers/index.js to look at.
 */
-const config = require('./config.js');
-
-
 const path = require('path');
 const express = require('express');
 const compression = require('compression');
@@ -26,12 +23,13 @@ const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
 const redis = require('redis');
 
+const config = require('./config.js');
 
 /* A major part of why we want to use config files is to configure our
    database / external api connections. Usually when developing we will
    have these things point to one instance but then when we deploy to
-   heroku we want them to point to a different instance. 
-   
+   heroku we want them to point to a different instance.
+
    You can see below that instead of creating dbURL from process.env.MONGODB_URI
    and defaulting to localhost, we are instead just using the mongo connection
    from our config file.
@@ -53,9 +51,9 @@ const redisClient = redis.createClient({
 });
 redisClient.connect().catch(console.error);
 
-
 // pull in our routes
 const router = require('./router.js');
+
 const app = express();
 
 /* In this demo we have a folder called client, and a folder called clientDev.

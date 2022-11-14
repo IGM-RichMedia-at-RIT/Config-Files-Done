@@ -4,8 +4,8 @@
    logic, if statements, etc here.
 */
 
-/* In the past we have used process.env to set things like our port 
-   and database connections on Heroku. Heroku configures process.env 
+/* In the past we have used process.env to set things like our port
+   and database connections on Heroku. Heroku configures process.env
    based on the Config Vars section of it's website. We often want to
    use config vars like this to pull out our sensitive database
    connection strings from our code. If someone were to get their hands
@@ -35,7 +35,7 @@
         REDISCLOUD_URL= (note: put your redis connection string here)
         SECRET=My secret
 
-   These will all be loaded into process.env by the following function 
+   These will all be loaded into process.env by the following function
    call to the dotenv library. More on what each does below.
 */
 require('dotenv').config();
@@ -51,12 +51,12 @@ require('dotenv').config();
    could theoretically store more information in them later.
 */
 const staticAssets = {
-    development: {
-      path: 'clientDev/',
-    },
-    production: {
-      path: 'client/',
-    },
+  development: {
+    path: 'clientDev/',
+  },
+  production: {
+    path: 'client/',
+  },
 };
 
 /* Similar to static assets above, we also want to have different
@@ -71,30 +71,29 @@ const staticAssets = {
    so that they are not publically visible in our codebase on GitHub.
 */
 const connections = {
-    development: {
-      http: {
-        port: 3000,
-      },
-      mongo: process.env.MONGODB_URI || 'mongodb://localhost/ConfigExample',
-      redis: process.env.REDISCLOUD_URL,
+  development: {
+    http: {
+      port: 3000,
     },
-  
-    production: {
-      http: {
-        port: process.env.PORT || process.env.NODE_PORT || 3000,
-      },
-      mongo: process.env.MONGODB_URI,
-      redis: process.env.REDISCLOUD_URL,
-    },
-};
+    mongo: process.env.MONGODB_URI || 'mongodb://localhost/ConfigExample',
+    redis: process.env.REDISCLOUD_URL,
+  },
 
+  production: {
+    http: {
+      port: process.env.PORT || process.env.NODE_PORT || 3000,
+    },
+    mongo: process.env.MONGODB_URI,
+    redis: process.env.REDISCLOUD_URL,
+  },
+};
 
 /* Once we have setup the map objects above, we can simply export the ones
    relevant to our specific dev environment. In the case of our secret, it
    will always just be the one we are importing from our .env file.
 */
 module.exports = {
-    staticAssets: staticAssets[process.env.NODE_ENV],
-    connections: connections[process.env.NODE_ENV],
-    secret: process.env.SECRET,
+  staticAssets: staticAssets[process.env.NODE_ENV],
+  connections: connections[process.env.NODE_ENV],
+  secret: process.env.SECRET,
 };
