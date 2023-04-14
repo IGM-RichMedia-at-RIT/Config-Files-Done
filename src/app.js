@@ -15,12 +15,11 @@ const path = require('path');
 const express = require('express');
 const compression = require('compression');
 const favicon = require('serve-favicon');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
-const RedisStore = require('connect-redis')(session);
+const RedisStore = require('connect-redis').default;
 const redis = require('redis');
 
 const config = require('./config.js');
@@ -34,7 +33,7 @@ const config = require('./config.js');
    and defaulting to localhost, we are instead just using the mongo connection
    from our config file.
 */
-mongoose.connect(config.connections.mongo, (err) => {
+mongoose.connect(config.connections.mongo).catch(err => {
   if (err) {
     console.log('Could not connect to database');
     throw err;
@@ -98,7 +97,6 @@ app.set('views', `${__dirname}/../views`);
    we can also use this same technique for the favicon.
 */
 app.use(favicon(path.resolve(`${config.staticAssets.path}/img/favicon.png`)));
-app.use(cookieParser());
 
 router(app);
 
